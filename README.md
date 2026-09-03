@@ -1,0 +1,5 @@
+# KRØBS
+
+Production storefront for BLOCK 01.
+
+Required Vercel env vars: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, KROBS_DB_POSTGRES_URL, RESEND_API_KEY.
