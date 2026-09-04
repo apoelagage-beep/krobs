@@ -1,0 +1,1 @@
+import {db,ensure} from './db.js';export default async function h(req,res){try{const sql=db();await ensure(sql);const rows=await sql`SELECT product_id,size,stock,updated_at FROM krobs_inventory ORDER BY product_id,size`;res.json({ok:true,inventory:rows})}catch(e){res.status(500).json({ok:false,error:'Inventory unavailable'})}}
