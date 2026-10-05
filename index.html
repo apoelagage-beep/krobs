@@ -8,94 +8,47 @@
   <meta name="description" content="KRØBS — Skateboarding. The city is your park.">
   <link rel="stylesheet" href="/style.css">
 </head>
-
 <body>
-
 <header>
   <a class="logo" href="/">KRØBS</a>
-
   <nav>
-    <a href="#top">TOP</a>
-    <a href="#bottom">BOTTOM</a>
-    <a href="#details">DÉTAILS</a>
+    <a href="/" aria-current="page">SKATE</a>
+    <a href="/textile.html">TEXTILE</a>
+    <a class="nav-details" href="#details">DÉTAILS</a>
   </nav>
-
-  <button class="cart-toggle" type="button">
-    PANIER <span id="cart-count">0</span>
-  </button>
+  <button class="cart-toggle" type="button">PANIER <span id="cart-count">0</span></button>
 </header>
-
 <main>
-
   <section class="hero">
     <div class="hero-grid">
-      <figure id="top">
-        <img src="/assets/deck-top.jpg" alt="KRØBS BLOCK 01 — dessus noir">
-      </figure>
-
-      <figure id="bottom">
-        <img src="/assets/deck-bottom.jpg" alt="KRØBS BLOCK 01 — dessous écru">
-      </figure>
+      <figure id="top"><img src="/assets/deck-top.jpg" alt="KRØBS BLOCK 01 — dessus noir"></figure>
+      <figure id="bottom"><img src="/assets/deck-bottom.jpg" alt="KRØBS BLOCK 01 — dessous écru"></figure>
     </div>
   </section>
-
-  <div class="ticker">
-    <span>THE CITY IS YOUR PARK.</span>
-    <span>Ø</span>
-    <span>KRØBS</span>
-    <span>OWN THE STREET.</span>
-  </div>
-
+  <div class="ticker"><span>THE CITY IS YOUR PARK.</span><span>Ø</span><span>KRØBS</span><span>OWN THE STREET.</span></div>
   <section class="intro">
     <p class="eyebrow">BLOCK 01 / PRODUCT</p>
     <h1>THE DECK.</h1>
-
-    <p class="lead">
-      Une planche pensée à Paris pour la rue.
-      Dessus noir, dessous écru, identité KRØBS verticale
-      et numérotation de série.
-    </p>
-
+    <p class="lead">Une planche pensée à Paris pour la rue. Dessus noir, dessous écru, identité KRØBS verticale et numérotation de série.</p>
     <a class="button-link" href="#details">VOIR LES DÉTAILS</a>
   </section>
-
   <section id="details" class="product">
     <div class="product-gallery">
       <img src="/assets/detail-top.jpg" alt="Détail du dessus KRØBS">
       <img src="/assets/detail-edge.jpg" alt="Détail des chants de la planche">
       <img src="/assets/detail-number.jpg" alt="Numérotation BLOCK 01">
     </div>
-
     <div class="product-info">
       <p class="eyebrow">BLOCK 01 / LIMITED</p>
       <h2>BLOCK 01 DECK</h2>
       <div class="price">74,90 €</div>
-
-      <p>
-        8.25” — érable canadien 7 plis — concave medium.
-        Édition numérotée.
-      </p>
-
-      <div class="size">
-        <span>SIZE</span>
-        <strong>8.25"</strong>
-      </div>
-
+      <p>8.25” — érable canadien 7 plis — concave medium. Édition numérotée.</p>
+      <div class="size"><span>SIZE</span><strong>8.25"</strong></div>
       <p id="stock-status">Vérification du stock…</p>
-
-      <button
-        class="add-to-cart"
-        type="button"
-        data-id="block-01-deck"
-        data-size="8.25"
-      >
-        AJOUTER AU PANIER
-      </button>
-
+      <button class="add-to-cart" type="button" data-id="block-01-deck" data-size="8.25">AJOUTER AU PANIER</button>
       <p class="shipping">LIVRAISON FRANCE — 9,90 €</p>
     </div>
   </section>
-
   <section class="lifestyle">
     <img src="/assets/lifestyle-1.jpg" alt="KRØBS street">
     <img src="/assets/lifestyle-2.jpg" alt="KRØBS skate">
@@ -103,36 +56,18 @@
     <img src="/assets/lifestyle-4.jpg" alt="KRØBS BLOCK 01">
     <img src="/assets/lifestyle-5.jpg" alt="KRØBS lifestyle">
   </section>
-
 </main>
-
 <aside class="cart" id="cart">
   <button class="cart-close" type="button">FERMER ×</button>
-
   <h2>PANIER</h2>
-
   <div id="cart-items"></div>
-
   <div class="cart-footer">
-    <div>
-      <span>TOTAL</span>
-      <strong id="cart-total">0,00 €</strong>
-    </div>
-
-    <button id="checkout" type="button">
-      COMMANDER
-    </button>
+    <div><span>TOTAL</span><strong id="cart-total">0,00 €</strong></div>
+    <button id="checkout" type="button">COMMANDER</button>
   </div>
 </aside>
-
 <div class="backdrop"></div>
-
-<footer>
-  <strong>KRØBS</strong>
-  <span>THE CITY IS YOUR PARK.</span>
-  <span>PARIS — FRANCE</span>
-</footer>
-
+<footer><strong>KRØBS</strong><span>THE CITY IS YOUR PARK.</span><span>PARIS — FRANCE</span></footer>
 <script src="/app.js"></script>
 </body>
 </html>
