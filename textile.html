@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080808">
+  <title>KRØBS — TEXTILE</title>
+  <meta name="description" content="KRØBS Textile — T-shirts et hoodies. The city is your park.">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="textile-page">
+<header>
+  <a class="logo" href="/">KRØBS</a>
+  <nav>
+    <a href="/">SKATE</a>
+    <a href="/textile.html" aria-current="page">TEXTILE</a>
+  </nav>
+  <button class="cart-toggle" type="button">PANIER <span id="cart-count">0</span></button>
+</header>
+
+<main>
+  <section class="textile-hero">
+    <p class="eyebrow">KRØBS / TEXTILE</p>
+    <h1>WEAR<br>THE STREET.</h1>
+    <p class="lead">T-shirts et hoodies KRØBS. Une collection pensée pour la rue, imprimée à la demande via Printful.</p>
+  </section>
+
+  <div class="ticker">
+    <span>TEXTILE</span>
+    <span>Ø</span>
+    <span>THE CITY IS YOUR PARK.</span>
+    <span>OWN THE STREET.</span>
+  </div>
+
+  <section class="catalog-section">
+    <div class="catalog-heading">
+      <div>
+        <p class="eyebrow">COLLECTION / 01</p>
+        <h2>TEXTILE</h2>
+      </div>
+      <p id="catalog-status" class="catalog-status">CHARGEMENT DES PRODUITS…</p>
+    </div>
+
+    <div id="textile-grid" class="textile-grid" aria-live="polite"></div>
+  </section>
+</main>
+
+<aside class="cart" id="cart">
+  <button class="cart-close" type="button">FERMER ×</button>
+  <h2>PANIER</h2>
+  <div id="cart-items"></div>
+  <div class="cart-footer">
+    <div><span>TOTAL</span><strong id="cart-total">0,00 €</strong></div>
+    <button id="checkout" type="button">COMMANDER</button>
+  </div>
+</aside>
+<div class="backdrop"></div>
+
+<footer>
+  <strong>KRØBS</strong>
+  <span>THE CITY IS YOUR PARK.</span>
+  <span>PARIS — FRANCE</span>
+</footer>
+
+<script src="/app.js"></script>
+<script src="/textile.js"></script>
+</body>
+</html>
