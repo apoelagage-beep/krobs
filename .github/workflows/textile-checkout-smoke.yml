@@ -45,14 +45,16 @@ jobs:
           )
           curl --fail --silent --show-error -H 'Content-Type: application/json' --data "$BODY" "$BASE/api/create-checkout-session" -o /tmp/checkout.json
           python3 - <<'PY'
-          import json
+          import json,re
           url=json.load(open('/tmp/checkout.json'))['url']
-          if 'cs_test_' not in url: raise SystemExit('Not a Stripe test Checkout session')
+          m=re.search(r'(cs_test_[A-Za-z0-9]+)',url)
+          if not m: raise SystemExit('Not a Stripe test Checkout session')
           open('/tmp/checkout-url.txt','w').write(url)
-          print('Created Stripe test Checkout session')
+          open('/tmp/session-id.txt','w').write(m.group(1))
+          print('SESSION_ID='+m.group(1))
           PY
 
-      - name: Probe Checkout DOM in Chrome
+      - name: Pay with Stripe test card
         shell: bash
         run: |
           set -euo pipefail
@@ -60,28 +62,60 @@ jobs:
           python3 - <<'PY'
           from selenium import webdriver
           from selenium.webdriver.chrome.options import Options
-          import json, time
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.support.ui import WebDriverWait
+          from selenium.webdriver.support import expected_conditions as EC
+          import time
+
           opts=Options()
           opts.add_argument('--headless=new')
           opts.add_argument('--no-sandbox')
           opts.add_argument('--disable-dev-shm-usage')
+          opts.add_argument('--window-size=1440,1200')
           driver=webdriver.Chrome(options=opts)
+          wait=WebDriverWait(driver, 30)
+
+          def fill(name, value):
+              e=wait.until(EC.element_to_be_clickable((By.NAME,name)))
+              e.clear()
+              e.send_keys(value)
+
           try:
-              url=open('/tmp/checkout-url.txt').read().strip()
-              driver.get(url)
-              time.sleep(5)
-              print('TITLE:', driver.title)
-              print('URL:', driver.current_url.split('#')[0])
-              print('BODY:\n', driver.find_element('tag name','body').text[:8000])
-              rows=[]
-              for i,e in enumerate(driver.find_elements('css selector','input,select,button')):
-                  rows.append({
-                    'i':i,'tag':e.tag_name,'type':e.get_attribute('type'),'name':e.get_attribute('name'),
-                    'id':e.get_attribute('id'),'placeholder':e.get_attribute('placeholder'),
-                    'aria':e.get_attribute('aria-label'),'autocomplete':e.get_attribute('autocomplete'),
-                    'text':e.text,'value':e.get_attribute('value'),'enabled':e.is_enabled()
-                  })
-              print('FIELDS:', json.dumps(rows, ensure_ascii=False, indent=2))
+              driver.get(open('/tmp/checkout-url.txt').read().strip())
+              wait.until(EC.presence_of_element_located((By.NAME,'email')))
+              fill('email','krobs.textile.test@example.com')
+              fill('shippingName','KRØBS Textile Test')
+              fill('shippingAddressLine1','1 Rue de Rivoli')
+              fill('shippingPostalCode','75001')
+              fill('shippingLocality','Paris')
+              fill('phoneNumber','0612345678')
+              fill('cardNumber','4242424242424242')
+              fill('cardExpiry','1234')
+              fill('cardCvc','123')
+
+              pay=wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,"button[type='submit']")))
+              print('PAY_BUTTON=',pay.text)
+              pay.click()
+
+              end=time.time()+50
+              while time.time()<end:
+                  url=driver.current_url
+                  body=driver.find_element(By.TAG_NAME,'body').text
+                  if '/success' in url:
+                      print('SUCCESS_REDIRECT=',url.split('?')[0])
+                      print('SUCCESS_BODY=',body[:1000])
+                      break
+                  if 'Your card was declined' in body or 'incomplete' in body.lower():
+                      raise SystemExit('Stripe test payment failed: '+body[-1200:])
+                  time.sleep(1)
+              else:
+                  print('FINAL_URL=',driver.current_url.split('#')[0])
+                  print('FINAL_BODY=',driver.find_element(By.TAG_NAME,'body').text[-2000:])
+                  raise SystemExit('Timed out waiting for Stripe Checkout completion')
           finally:
               driver.quit()
           PY
+
+      - name: Print session id for verification
+        shell: bash
+        run: echo "SESSION_ID=$(cat /tmp/session-id.txt)"
