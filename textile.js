@@ -6,7 +6,11 @@ const KROBS_PRODUCT_GALLERIES = [
     match: /classic\s*[øo]\s*hoodie\s*white/i,
     images: [
       { url: '/assets/textile/classic-o-hoodie-white/front.svg', label: 'FACE', backgroundColor: '' },
-      { url: '/assets/textile/classic-o-hoodie-white/back.svg', label: 'DOS', backgroundColor: '' }
+      { url: '/assets/textile/classic-o-hoodie-white/back.svg', label: 'DOS', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-white/left.svg', label: 'PROFIL G.', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-white/right.svg', label: 'PROFIL D.', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-white/detail-1.svg', label: 'DÉTAIL 1', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-white/detail-2.svg', label: 'DÉTAIL 2', backgroundColor: '' }
     ]
   }
 ];
