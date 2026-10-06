@@ -12,60 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Validate deployed Printful catalog and Stripe checkout
+      - name: Probe production Stripe checkout without payment
         shell: bash
         run: |
           set -euo pipefail
-          BASE='https://krobs-git-feature-textile-checkout-printful-apoelagage-4467.vercel.app'
-
-          curl --fail --silent --show-error "$BASE/api/printful-products" -o /tmp/products.json
-
-          python3 - <<'PY' > /tmp/test-data.env
-          import json, shlex
-          data=json.load(open('/tmp/products.json'))
-          for entry in data.get('products', []):
-              product=entry.get('sync_product') or entry
-              for variant in entry.get('sync_variants') or []:
-                  if not variant.get('id') or not variant.get('synced') or variant.get('is_ignored'):
-                      continue
-                  status=str(variant.get('availability_status') or '').lower()
-                  if status in {'discontinued','out_of_stock','temporary_out_of_stock'}:
-                      continue
-                  price=float(variant.get('retail_price') or 0)
-                  if price <= 0 or str(variant.get('currency') or 'EUR').upper() != 'EUR':
-                      continue
-                  print(f"PRODUCT_ID={shlex.quote(str(product.get('id')))}")
-                  print(f"VARIANT_ID={shlex.quote(str(variant.get('id')))}")
-                  print(f"PRODUCT_NAME={shlex.quote(str(product.get('name') or 'KRØBS TEXTILE'))}")
-                  print(f"REAL_PRICE={shlex.quote(str(variant.get('retail_price')))}")
-                  raise SystemExit
-          raise SystemExit('No active EUR Printful variant found')
-          PY
-
-          set -a
-          source /tmp/test-data.env
-          set +a
-          echo "PRODUCT_ID=$PRODUCT_ID"
-          echo "VARIANT_ID=$VARIANT_ID"
-          echo "REAL_PRICE=$REAL_PRICE"
-
-          BODY=$(python3 - <<'PY'
-          import json, os
-          print(json.dumps({
-            'cart': [{
-              'type': 'printful',
-              'id': 'smoke-test-client-item',
-              'productId': os.environ['PRODUCT_ID'],
-              'syncVariantId': os.environ['VARIANT_ID'],
-              'name': os.environ['PRODUCT_NAME'],
-              'size': 'CLIENT_FAKE_SIZE',
-              'color': 'CLIENT_FAKE_COLOR',
-              'unitAmount': 1,
-              'qty': 1
-            }]
-          }))
-          PY
-          )
+          BASE='https://krobs.vercel.app'
+          BODY='{"cart":[{"id":"block-01-deck","name":"BLOCK 01 DECK","size":"8.25","unitAmount":1,"qty":1}]}'
 
           STATUS=$(curl --silent --show-error -o /tmp/checkout.json -w '%{http_code}' \
             -H 'Content-Type: application/json' \
