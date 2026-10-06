@@ -26,18 +26,41 @@
     return !['discontinued', 'out_of_stock', 'temporary_out_of_stock'].includes(status);
   }
 
+  function variantDetails(variant) {
+    let size = String(variant?.size || variant?.product?.size || '').trim();
+    let color = String(variant?.color || variant?.product?.color || '').trim();
+
+    if (!size || !color) {
+      const productName = String(variant?.product?.name || '').trim();
+      const variantName = String(variant?.name || '').trim();
+      const parenthesized = productName.match(/\(([^()]+)\)\s*$/)?.[1] || '';
+      const suffix = parenthesized || variantName.split(' - ').pop() || '';
+      const parts = suffix.split('/').map((part) => part.trim()).filter(Boolean);
+
+      if (parts.length >= 2) {
+        color ||= parts[0];
+        size ||= parts[parts.length - 1];
+      }
+    }
+
+    return { size, color };
+  }
+
   function getProductData(entry) {
     const syncProduct = entry?.sync_product || entry || {};
     const variants = Array.isArray(entry?.sync_variants)
       ? entry.sync_variants
         .filter(variantAvailable)
-        .map((variant) => ({
-          id: String(variant.id),
-          size: variant.size || variant?.product?.size || '',
-          color: variant.color || variant?.product?.color || '',
-          price: Number(variant.retail_price),
-          currency: String(variant.currency || 'EUR').toUpperCase()
-        }))
+        .map((variant) => {
+          const details = variantDetails(variant);
+          return {
+            id: String(variant.id),
+            size: details.size,
+            color: details.color,
+            price: Number(variant.retail_price),
+            currency: String(variant.currency || 'EUR').toUpperCase()
+          };
+        })
         .filter((variant) => Number.isFinite(variant.price) && variant.price > 0 && variant.currency === 'EUR')
       : [];
 
