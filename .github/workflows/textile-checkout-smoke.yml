@@ -1,0 +1,84 @@
+name: Textile checkout smoke test
+
+on:
+  push:
+    branches:
+      - feature/textile-checkout-printful
+    paths:
+      - .github/workflows/textile-checkout-smoke.yml
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate deployed Printful catalog and Stripe checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://krobs-git-feature-textile-checkout-printful-apoelagage-4467.vercel.app'
+
+          curl --fail --silent --show-error "$BASE/api/printful-products" -o /tmp/products.json
+
+          python3 - <<'PY' > /tmp/test-data.env
+          import json, shlex
+          data=json.load(open('/tmp/products.json'))
+          for entry in data.get('products', []):
+              product=entry.get('sync_product') or entry
+              for variant in entry.get('sync_variants') or []:
+                  if not variant.get('id') or not variant.get('synced') or variant.get('is_ignored'):
+                      continue
+                  status=str(variant.get('availability_status') or '').lower()
+                  if status in {'discontinued','out_of_stock','temporary_out_of_stock'}:
+                      continue
+                  price=float(variant.get('retail_price') or 0)
+                  if price <= 0 or str(variant.get('currency') or 'EUR').upper() != 'EUR':
+                      continue
+                  print(f"PRODUCT_ID={shlex.quote(str(product.get('id')))}")
+                  print(f"VARIANT_ID={shlex.quote(str(variant.get('id')))}")
+                  print(f"PRODUCT_NAME={shlex.quote(str(product.get('name') or 'KRØBS TEXTILE'))}")
+                  print(f"REAL_PRICE={shlex.quote(str(variant.get('retail_price')))}")
+                  raise SystemExit
+          raise SystemExit('No active EUR Printful variant found')
+          PY
+
+          source /tmp/test-data.env
+          echo "PRODUCT_ID=$PRODUCT_ID"
+          echo "VARIANT_ID=$VARIANT_ID"
+          echo "REAL_PRICE=$REAL_PRICE"
+
+          BODY=$(python3 - <<'PY'
+          import json, os
+          print(json.dumps({
+            'cart': [{
+              'type': 'printful',
+              'id': 'smoke-test-client-item',
+              'productId': os.environ['PRODUCT_ID'],
+              'syncVariantId': os.environ['VARIANT_ID'],
+              'name': os.environ['PRODUCT_NAME'],
+              'size': 'CLIENT_FAKE_SIZE',
+              'color': 'CLIENT_FAKE_COLOR',
+              'unitAmount': 1,
+              'qty': 1
+            }]
+          }))
+          PY
+          )
+
+          STATUS=$(curl --silent --show-error -o /tmp/checkout.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            --data "$BODY" \
+            "$BASE/api/create-checkout-session")
+
+          cat /tmp/checkout.json
+          echo
+          test "$STATUS" = '200'
+
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/checkout.json'))
+          url=data.get('url','')
+          if not url.startswith('https://checkout.stripe.com/'):
+              raise SystemExit(f'Unexpected Stripe Checkout URL: {url!r}')
+          print('CHECKOUT_URL='+url)
+          PY
