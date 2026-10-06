@@ -1,6 +1,21 @@
 const textileGrid = document.querySelector('#textile-grid');
 const catalogStatus = document.querySelector('#catalog-status');
 
+const KROBS_PRODUCT_GALLERIES = [
+  {
+    match: /classic\s*[øo]\s*hoodie\s*white/i,
+    images: [
+      { url: '/assets/textile/classic-o-hoodie-white/front.svg', label: 'FACE', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-white/back.svg', label: 'DOS', backgroundColor: '' }
+    ]
+  }
+];
+
+function getKrobsProductGallery(name = '') {
+  const gallery = KROBS_PRODUCT_GALLERIES.find((item) => item.match.test(String(name)));
+  return gallery ? gallery.images.map((image) => ({ ...image })) : null;
+}
+
 function escapeHtml(value = '') {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -46,6 +61,9 @@ function findVariantPreview(variants, placement) {
 }
 
 function getProductImages(entry, syncProduct, variants) {
+  const krobsGallery = getKrobsProductGallery(syncProduct?.name || '');
+  if (krobsGallery?.length) return krobsGallery;
+
   const front = syncProduct.thumbnail_url
     || findVariantPreview(variants, 'front')
     || variants.find((variant) => variant?.files?.length)?.files?.find((file) => file?.preview_url)?.preview_url
