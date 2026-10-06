@@ -30,6 +30,32 @@ function compactCart(cart) {
   return encoded;
 }
 
+function variantDetails(variant) {
+  let size = String(variant?.size || variant?.product?.size || '').trim();
+  let color = String(variant?.color || variant?.product?.color || '').trim();
+
+  if (!size || !color) {
+    const productName = String(variant?.product?.name || '').trim();
+    const variantName = String(variant?.name || '').trim();
+    const parenthesized = productName.match(/\(([^()]+)\)\s*$/)?.[1] || '';
+    const suffix = parenthesized || variantName.split(' - ').pop() || '';
+    const parts = suffix.split('/').map((part) => part.trim()).filter(Boolean);
+
+    if (parts.length >= 2) {
+      color ||= parts[0];
+      size ||= parts[parts.length - 1];
+    }
+  }
+
+  return { size, color };
+}
+
+function variantBaseName(variant, fallback) {
+  const name = String(variant?.name || fallback || 'KRØBS TEXTILE').trim();
+  const suffix = /\s+-\s+[^/]+\s*\/\s*[^/]+\s*$/;
+  return name.replace(suffix, '').trim() || name;
+}
+
 async function resolvePrintfulItem(item) {
   const productId = String(item?.productId || '').trim();
   const syncVariantId = String(item?.syncVariantId || '').trim();
@@ -57,13 +83,15 @@ async function resolvePrintfulItem(item) {
   const currency = String(variant.currency || 'EUR').toUpperCase();
   if (currency !== 'EUR') throw new Error('Devise textile non prise en charge');
 
+  const details = variantDetails(variant);
+
   return {
     type: 'printful',
     productId,
     syncVariantId,
-    name: variant.name || item.name || 'KRØBS TEXTILE',
-    size: variant.size || item.size || '',
-    color: variant.color || item.color || '',
+    name: variantBaseName(variant, item.name),
+    size: details.size || String(item.size || ''),
+    color: details.color || String(item.color || ''),
     qty: quantity(item.qty),
     price: euroCents(variant.retail_price)
   };
