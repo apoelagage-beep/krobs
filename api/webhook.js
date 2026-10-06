@@ -65,6 +65,15 @@ function printfulRecipient(session) {
   };
 }
 
+function printfulShippingMethod(session) {
+  const method = String(session?.metadata?.printful_shipping || '').trim();
+  if (!method) return undefined;
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(method)) {
+    throw new Error('Mode de livraison Printful invalide');
+  }
+  return method;
+}
+
 async function findOrCreatePrintfulDraft(session, cart) {
   const externalId = printfulExternalId(session.id);
 
@@ -84,10 +93,12 @@ async function findOrCreatePrintfulDraft(session, cart) {
 
   if (!items.length) return null;
 
+  const shipping = printfulShippingMethod(session);
   const created = await createPrintfulDraftOrder({
     external_id: externalId,
     recipient: printfulRecipient(session),
-    items
+    items,
+    ...(shipping ? { shipping } : {})
   });
 
   return created?.result || null;
@@ -218,6 +229,8 @@ export default async function handler(req, res) {
       payment_status: session.payment_status,
       amount_total: session.amount_total,
       currency: session.currency,
+      shipping_total: session.total_details?.amount_shipping || 0,
+      printful_shipping: session.metadata?.printful_shipping || null,
       stock_updated: inserted.length > 0 && cart.some(isDeck),
       printful_order_id: printfulOrderId,
       printful_status: printfulStatus
