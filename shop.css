@@ -131,16 +131,58 @@ nav a[aria-current="page"]{
   text-align:right;
 }
 
+.textile-variant-label{
+  display:block;
+  margin-top:22px;
+  font-family:monospace;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:1px;
+}
+
+.textile-variant-label span{
+  display:block;
+  margin-bottom:8px;
+}
+
+.textile-variant-select{
+  width:100%;
+  min-height:48px;
+  padding:12px 42px 12px 12px;
+  border:2px solid #080808;
+  border-radius:0;
+  background:#f4f1eb;
+  color:#080808;
+  font:700 12px/1.2 monospace;
+  text-transform:uppercase;
+}
+
+.textile-add-to-cart,
 .textile-coming-soon{
   width:100%;
-  margin-top:22px;
+  margin-top:12px;
   padding:17px 14px;
-  border:0;
+  border:2px solid #080808;
+  border-radius:0;
   background:#080808;
   color:white;
   font-family:monospace;
-  font-weight:700;
-  opacity:.55;
+  font-weight:900;
+  letter-spacing:.5px;
+}
+
+.textile-add-to-cart:not(:disabled){
+  cursor:pointer;
+}
+
+.textile-add-to-cart:not(:disabled):hover{
+  background:#f4f1eb;
+  color:#080808;
+}
+
+.textile-add-to-cart:disabled,
+.textile-coming-soon{
+  opacity:.45;
   cursor:not-allowed;
 }
 
