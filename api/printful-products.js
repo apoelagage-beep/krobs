@@ -1,37 +1,67 @@
 import { printfulRequest } from './printful.js';
 
-function supportsFrontBack(product) {
-  const name = product?.sync_product?.name || product?.name || '';
-  return /t-?shirt|tee|hoodie|sweat/i.test(name);
+function normalizePlacement(value = '') {
+  return String(value).trim().toLowerCase();
 }
 
-async function getBlankBackView(product) {
+function placementLabel(placement = '', index = 0) {
+  const normalized = normalizePlacement(placement);
+  const labels = {
+    front: 'FACE',
+    default: 'FACE',
+    back: 'DOS',
+    left: 'PROFIL G.',
+    right: 'PROFIL D.',
+    sleeve_left: 'MANCHE G.',
+    sleeve_right: 'MANCHE D.',
+    chest_left: 'POITRINE',
+    chest_right: 'POITRINE',
+    embroidery_chest_left: 'POITRINE',
+    embroidery_chest_right: 'POITRINE'
+  };
+
+  return labels[normalized] || `DÉTAIL ${index + 1}`;
+}
+
+async function getCatalogViews(product) {
   const variants = Array.isArray(product?.sync_variants) ? product.sync_variants : [];
   const catalogVariantId = variants.find((variant) => variant?.variant_id)?.variant_id;
-  if (!catalogVariantId) return null;
+  if (!catalogVariantId) return [];
 
   try {
     const response = await printfulRequest(
-      `/v2/catalog-variants/${encodeURIComponent(catalogVariantId)}/images?placement=back`
+      `/v2/catalog-variants/${encodeURIComponent(catalogVariantId)}/images`
     );
 
-    for (const variantImages of response?.data || []) {
-      for (const image of variantImages?.images || []) {
-        if (String(image?.placement || '').toLowerCase() !== 'back') continue;
-        const url = image?.image_url || image?.background_image || '';
-        if (!url) continue;
+    const groups = Array.isArray(response?.data) ? response.data : [];
+    const matchingGroup = groups.find(
+      (group) => String(group?.catalog_variant_id || '') === String(catalogVariantId)
+    );
+    const selectedGroups = matchingGroup ? [matchingGroup] : groups.slice(0, 1);
 
-        return {
+    const views = [];
+    const seen = new Set();
+
+    for (const group of selectedGroups) {
+      for (const image of group?.images || []) {
+        const url = image?.image_url || image?.background_image || '';
+        if (!url || seen.has(url)) continue;
+        seen.add(url);
+
+        views.push({
           url,
-          backgroundColor: variantImages?.primary_hex_color || image?.background_color || ''
-        };
+          placement: normalizePlacement(image?.placement),
+          label: placementLabel(image?.placement, views.length),
+          backgroundColor: image?.background_color || group?.primary_hex_color || ''
+        });
       }
     }
-  } catch (error) {
-    console.warn('PRINTFUL_BACK_VIEW_ERROR', catalogVariantId, error.message);
-  }
 
-  return null;
+    return views.slice(0, 8);
+  } catch (error) {
+    console.warn('PRINTFUL_GALLERY_VIEW_ERROR', catalogVariantId, error.message);
+    return [];
+  }
 }
 
 export default async function handler(req, res) {
@@ -44,10 +74,10 @@ export default async function handler(req, res) {
     for (const product of list?.result || []) {
       const detail = await printfulRequest(`/store/products/${product.id}`);
       const fullProduct = detail?.result || product;
+      const views = await getCatalogViews(fullProduct);
 
-      if (supportsFrontBack(fullProduct)) {
-        const back = await getBlankBackView(fullProduct);
-        if (back) fullProduct.krobs_gallery = { back };
+      if (views.length) {
+        fullProduct.krobs_gallery = { views };
       }
 
       products.push(fullProduct);
