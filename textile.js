@@ -19,6 +19,50 @@ function formatEuro(value) {
   }).format(number);
 }
 
+function normalizePlacement(value = '') {
+  return String(value).trim().toLowerCase();
+}
+
+function findVariantPreview(variants, placement) {
+  const wanted = normalizePlacement(placement);
+
+  for (const variant of variants) {
+    for (const file of variant?.files || []) {
+      const filePlacement = normalizePlacement(file?.type || file?.placement);
+      if (!filePlacement) continue;
+
+      const matches = wanted === 'front'
+        ? filePlacement === 'front' || filePlacement === 'default' || filePlacement.includes('front')
+        : filePlacement === wanted || filePlacement.includes(wanted);
+
+      if (!matches) continue;
+
+      const url = file?.preview_url || file?.thumbnail_url || '';
+      if (url) return url;
+    }
+  }
+
+  return '';
+}
+
+function getProductImages(entry, syncProduct, variants) {
+  const front = syncProduct.thumbnail_url
+    || findVariantPreview(variants, 'front')
+    || variants.find((variant) => variant?.files?.length)?.files?.find((file) => file?.preview_url)?.preview_url
+    || '';
+
+  const customBack = findVariantPreview(variants, 'back');
+  const blankBack = entry?.krobs_gallery?.back?.url || '';
+  const back = customBack || blankBack;
+  const backBackground = customBack ? '' : (entry?.krobs_gallery?.back?.backgroundColor || '');
+
+  const images = [];
+  if (front) images.push({ url: front, label: 'FACE', backgroundColor: '' });
+  if (back && back !== front) images.push({ url: back, label: 'DOS', backgroundColor: backBackground });
+
+  return images;
+}
+
 function getProductData(entry) {
   const syncProduct = entry?.sync_product || entry || {};
   const variants = Array.isArray(entry?.sync_variants) ? entry.sync_variants : [];
@@ -33,17 +77,95 @@ function getProductData(entry) {
       .filter(Boolean)
   )];
 
-  const thumbnail = syncProduct.thumbnail_url
-    || variants.find((variant) => variant?.files?.length)?.files?.find((file) => file?.preview_url)?.preview_url
-    || '';
+  const images = getProductImages(entry, syncProduct, variants);
 
   return {
     id: syncProduct.id || syncProduct.external_id || '',
     name: syncProduct.name || 'KRØBS TEXTILE',
-    thumbnail,
+    images,
     price: prices.length ? Math.min(...prices) : null,
     sizes: sizeLabels
   };
+}
+
+function renderGallery(product) {
+  if (!product.images.length) {
+    return '<div class="textile-image-placeholder">KRØBS</div>';
+  }
+
+  const slides = product.images.map((image, index) => {
+    const style = image.backgroundColor
+      ? ` style="background-color:${escapeHtml(image.backgroundColor)}"`
+      : '';
+
+    return `
+      <div class="textile-gallery-slide" data-gallery-label="${escapeHtml(image.label)}"${style}>
+        <img src="${escapeHtml(image.url)}" alt="${escapeHtml(product.name)} — ${escapeHtml(image.label.toLowerCase())}" loading="lazy"${index ? ' decoding="async"' : ''}>
+      </div>
+    `;
+  }).join('');
+
+  const controls = product.images.length > 1
+    ? `
+      <span class="textile-gallery-view" aria-hidden="true">FACE</span>
+      <button class="textile-gallery-arrow textile-gallery-prev" type="button" aria-label="Voir l’image précédente">‹</button>
+      <button class="textile-gallery-arrow textile-gallery-next" type="button" aria-label="Voir l’image suivante">›</button>
+      <div class="textile-gallery-dots" aria-hidden="true">
+        ${product.images.map((_, index) => `<span class="textile-gallery-dot${index === 0 ? ' is-active' : ''}"></span>`).join('')}
+      </div>
+    `
+    : '';
+
+  return `
+    <div class="textile-gallery${product.images.length > 1 ? ' has-multiple' : ''}" data-gallery>
+      <div class="textile-gallery-track">
+        ${slides}
+      </div>
+      ${controls}
+    </div>
+  `;
+}
+
+function initTextileGalleries() {
+  document.querySelectorAll('[data-gallery]').forEach((gallery) => {
+    const track = gallery.querySelector('.textile-gallery-track');
+    const slides = [...gallery.querySelectorAll('.textile-gallery-slide')];
+    const dots = [...gallery.querySelectorAll('.textile-gallery-dot')];
+    const label = gallery.querySelector('.textile-gallery-view');
+    const previous = gallery.querySelector('.textile-gallery-prev');
+    const next = gallery.querySelector('.textile-gallery-next');
+
+    if (!track || slides.length < 2) return;
+
+    let currentIndex = 0;
+    let scrollFrame = null;
+
+    const updateState = (index) => {
+      currentIndex = Math.max(0, Math.min(index, slides.length - 1));
+      dots.forEach((dot, dotIndex) => dot.classList.toggle('is-active', dotIndex === currentIndex));
+      if (label) label.textContent = slides[currentIndex]?.dataset.galleryLabel || '';
+    };
+
+    const goTo = (index) => {
+      const nextIndex = (index + slides.length) % slides.length;
+      track.scrollTo({
+        left: nextIndex * track.clientWidth,
+        behavior: 'smooth'
+      });
+      updateState(nextIndex);
+    };
+
+    previous?.addEventListener('click', () => goTo(currentIndex - 1));
+    next?.addEventListener('click', () => goTo(currentIndex + 1));
+
+    track.addEventListener('scroll', () => {
+      if (scrollFrame) cancelAnimationFrame(scrollFrame);
+      scrollFrame = requestAnimationFrame(() => {
+        const width = track.clientWidth || 1;
+        updateState(Math.round(track.scrollLeft / width));
+      });
+    }, { passive: true });
+  });
 }
 
 function renderProducts(products) {
@@ -72,9 +194,7 @@ function renderProducts(products) {
     return `
       <article class="textile-card">
         <div class="textile-image-wrap">
-          ${product.thumbnail
-            ? `<img src="${escapeHtml(product.thumbnail)}" alt="${escapeHtml(product.name)}" loading="lazy">`
-            : `<div class="textile-image-placeholder">KRØBS</div>`}
+          ${renderGallery(product)}
         </div>
         <div class="textile-card-body">
           <p class="textile-kicker">PRINTFUL / KRØBS</p>
@@ -88,6 +208,8 @@ function renderProducts(products) {
       </article>
     `;
   }).join('');
+
+  initTextileGalleries();
 
   if (catalogStatus) {
     catalogStatus.textContent = `${normalized.length} PRODUIT${normalized.length > 1 ? 'S' : ''}`;
