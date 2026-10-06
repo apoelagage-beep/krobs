@@ -50,10 +50,19 @@ function variantDetails(variant) {
   return { size, color };
 }
 
-function variantBaseName(variant, fallback) {
-  const name = String(variant?.name || fallback || 'KRØBS TEXTILE').trim();
-  const suffix = /\s+-\s+[^/]+\s*\/\s*[^/]+\s*$/;
-  return name.replace(suffix, '').trim() || name;
+function variantBaseName(variant, fallback, details) {
+  let name = String(variant?.name || fallback || 'KRØBS TEXTILE').trim();
+  const variantSuffix = [details.color, details.size].filter(Boolean).join(' / ');
+
+  if (variantSuffix && name.endsWith(` - ${variantSuffix}`)) {
+    name = name.slice(0, -(variantSuffix.length + 3)).trim();
+  }
+
+  if (details.size && name.endsWith(` / ${details.size}`)) {
+    name = name.slice(0, -(details.size.length + 3)).trim();
+  }
+
+  return name || String(fallback || 'KRØBS TEXTILE').trim();
 }
 
 async function resolvePrintfulItem(item) {
@@ -89,7 +98,7 @@ async function resolvePrintfulItem(item) {
     type: 'printful',
     productId,
     syncVariantId,
-    name: variantBaseName(variant, item.name),
+    name: variantBaseName(variant, item.name, details),
     size: details.size || String(item.size || ''),
     color: details.color || String(item.color || ''),
     qty: quantity(item.qty),
@@ -188,6 +197,8 @@ export default async function handler(req, res) {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: lines,
+      payment_method_types: ['card'],
+      adaptive_pricing: { enabled: false },
       billing_address_collection: 'required',
       shipping_address_collection: { allowed_countries: ['FR'] },
       phone_number_collection: { enabled: true },
