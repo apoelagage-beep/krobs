@@ -89,6 +89,114 @@ nav a[aria-current="page"]{
   letter-spacing:-3px;
 }
 
+.textile-gallery{
+  position:relative;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+
+.textile-gallery-track{
+  width:100%;
+  height:100%;
+  display:flex;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;
+  overscroll-behavior-inline:contain;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+
+.textile-gallery-track::-webkit-scrollbar{
+  display:none;
+}
+
+.textile-gallery-slide{
+  flex:0 0 100%;
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+  background:#e9e6df;
+}
+
+.textile-gallery-slide img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.textile-gallery-view{
+  position:absolute;
+  z-index:3;
+  top:14px;
+  left:14px;
+  padding:6px 9px;
+  background:#080808;
+  color:#fff;
+  font-family:monospace;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1px;
+  pointer-events:none;
+}
+
+.textile-gallery-arrow{
+  position:absolute;
+  z-index:3;
+  top:50%;
+  width:38px;
+  height:38px;
+  padding:0 0 3px;
+  transform:translateY(-50%);
+  border:2px solid #080808;
+  border-radius:50%;
+  background:#f4f1eb;
+  color:#080808;
+  font:900 28px/1 Arial,sans-serif;
+  cursor:pointer;
+}
+
+.textile-gallery-prev{
+  left:12px;
+}
+
+.textile-gallery-next{
+  right:12px;
+}
+
+.textile-gallery-dots{
+  position:absolute;
+  z-index:3;
+  left:50%;
+  bottom:14px;
+  display:flex;
+  gap:7px;
+  transform:translateX(-50%);
+  padding:7px 9px;
+  background:rgba(244,241,235,.88);
+  border:1px solid #080808;
+  pointer-events:none;
+}
+
+.textile-gallery-dot{
+  width:7px;
+  height:7px;
+  border:1px solid #080808;
+  border-radius:50%;
+  background:transparent;
+}
+
+.textile-gallery-dot.is-active{
+  background:#080808;
+}
+
 .textile-card-body{
   padding:24px;
 }
@@ -203,6 +311,10 @@ nav a[aria-current="page"]{
   .textile-grid{
     grid-template-columns:1fr;
     gap:12px;
+  }
+
+  .textile-gallery-arrow{
+    display:none;
   }
 
   .textile-card-body{
