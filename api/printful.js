@@ -27,7 +27,10 @@ export async function printfulRequest(path, options = {}) {
 
   if (!response.ok) {
     const message = data?.error?.message || data?.result || `Printful API ${response.status}`;
-    throw new Error(typeof message === 'string' ? message : `Printful API ${response.status}`);
+    const error = new Error(typeof message === 'string' ? message : `Printful API ${response.status}`);
+    error.status = response.status;
+    error.payload = data;
+    throw error;
   }
 
   return data;
