@@ -23,44 +23,101 @@ function normalizePlacement(value = '') {
   return String(value).trim().toLowerCase();
 }
 
-function findVariantPreview(variants, placement) {
-  const wanted = normalizePlacement(placement);
+function placementLabel(placement = '', index = 0) {
+  const normalized = normalizePlacement(placement);
+  const labels = {
+    front: 'FACE',
+    default: 'FACE',
+    back: 'DOS',
+    left: 'PROFIL G.',
+    right: 'PROFIL D.',
+    sleeve_left: 'MANCHE G.',
+    sleeve_right: 'MANCHE D.',
+    chest_left: 'POITRINE',
+    chest_right: 'POITRINE',
+    embroidery_chest_left: 'POITRINE',
+    embroidery_chest_right: 'POITRINE'
+  };
+
+  return labels[normalized] || `DÉTAIL ${index + 1}`;
+}
+
+function collectVariantPreviews(variants) {
+  const images = [];
+  const seenUrls = new Set();
 
   for (const variant of variants) {
     for (const file of variant?.files || []) {
-      const filePlacement = normalizePlacement(file?.type || file?.placement);
-      if (!filePlacement) continue;
-
-      const matches = wanted === 'front'
-        ? filePlacement === 'front' || filePlacement === 'default' || filePlacement.includes('front')
-        : filePlacement === wanted || filePlacement.includes(wanted);
-
-      if (!matches) continue;
-
       const url = file?.preview_url || file?.thumbnail_url || '';
-      if (url) return url;
+      if (!url || seenUrls.has(url)) continue;
+
+      const placement = normalizePlacement(file?.type || file?.placement);
+      if (!placement || placement === 'preview') continue;
+
+      seenUrls.add(url);
+      images.push({
+        url,
+        placement,
+        label: placementLabel(placement, images.length),
+        backgroundColor: ''
+      });
     }
   }
 
-  return '';
+  return images;
 }
 
 function getProductImages(entry, syncProduct, variants) {
-  const front = syncProduct.thumbnail_url
-    || findVariantPreview(variants, 'front')
-    || variants.find((variant) => variant?.files?.length)?.files?.find((file) => file?.preview_url)?.preview_url
-    || '';
-
-  const customBack = findVariantPreview(variants, 'back');
-  const blankBack = entry?.krobs_gallery?.back?.url || '';
-  const back = customBack || blankBack;
-  const backBackground = customBack ? '' : (entry?.krobs_gallery?.back?.backgroundColor || '');
-
   const images = [];
-  if (front) images.push({ url: front, label: 'FACE', backgroundColor: '' });
-  if (back && back !== front) images.push({ url: back, label: 'DOS', backgroundColor: backBackground });
+  const seenUrls = new Set();
+  const seenPlacements = new Set();
 
-  return images;
+  const addImage = (image, options = {}) => {
+    const url = image?.url || '';
+    if (!url || seenUrls.has(url)) return;
+
+    const placement = normalizePlacement(image?.placement || options.placement);
+    const label = image?.label || placementLabel(placement, images.length);
+
+    seenUrls.add(url);
+    if (placement) seenPlacements.add(placement);
+    images.push({
+      url,
+      placement,
+      label,
+      backgroundColor: image?.backgroundColor || ''
+    });
+  };
+
+  const front = syncProduct.thumbnail_url || '';
+  if (front) {
+    addImage({ url: front, placement: 'front', label: 'FACE' });
+  }
+
+  for (const image of collectVariantPreviews(variants)) {
+    addImage(image);
+  }
+
+  const catalogViews = Array.isArray(entry?.krobs_gallery?.views)
+    ? entry.krobs_gallery.views
+    : [];
+
+  for (const view of catalogViews) {
+    const placement = normalizePlacement(view?.placement);
+
+    // Les mockups synchronisés du produit restent prioritaires. Les vues catalogue
+    // complètent uniquement les angles qui ne sont pas déjà présents.
+    if (placement && seenPlacements.has(placement)) continue;
+
+    addImage({
+      url: view?.url || '',
+      placement,
+      label: view?.label || placementLabel(placement, images.length),
+      backgroundColor: view?.backgroundColor || ''
+    });
+  }
+
+  return images.slice(0, 8);
 }
 
 function getProductData(entry) {
@@ -100,14 +157,14 @@ function renderGallery(product) {
 
     return `
       <div class="textile-gallery-slide" data-gallery-label="${escapeHtml(image.label)}"${style}>
-        <img src="${escapeHtml(image.url)}" alt="${escapeHtml(product.name)} — ${escapeHtml(image.label.toLowerCase())}" loading="lazy"${index ? ' decoding="async"' : ''}>
+        <img src="${escapeHtml(image.url)}" alt="${escapeHtml(product.name)} — ${escapeHtml(image.label.toLowerCase())}" loading="${index === 0 ? 'eager' : 'lazy'}" decoding="async">
       </div>
     `;
   }).join('');
 
   const controls = product.images.length > 1
     ? `
-      <span class="textile-gallery-view" aria-hidden="true">FACE</span>
+      <span class="textile-gallery-view" aria-hidden="true">${escapeHtml(product.images[0].label)}</span>
       <button class="textile-gallery-arrow textile-gallery-prev" type="button" aria-label="Voir l’image précédente">‹</button>
       <button class="textile-gallery-arrow textile-gallery-next" type="button" aria-label="Voir l’image suivante">›</button>
       <div class="textile-gallery-dots" aria-hidden="true">
@@ -157,6 +214,12 @@ function initTextileGalleries() {
 
     previous?.addEventListener('click', () => goTo(currentIndex - 1));
     next?.addEventListener('click', () => goTo(currentIndex + 1));
+
+    dots.forEach((dot, dotIndex) => {
+      dot.style.pointerEvents = 'auto';
+      dot.style.cursor = 'pointer';
+      dot.addEventListener('click', () => goTo(dotIndex));
+    });
 
     track.addEventListener('scroll', () => {
       if (scrollFrame) cancelAnimationFrame(scrollFrame);
