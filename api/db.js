@@ -51,7 +51,7 @@ export async function ensure(sql) {
 
   if (!existing.length) {
     const sold = await sql`
-      SELECT COALESCE(SUM((item->>'q')::int), 0)::int AS qty
+      SELECT COALESCE(SUM(COALESCE((item->>'q')::int, (item->>'qty')::int)), 0)::int AS qty
       FROM krobs_orders o
       CROSS JOIN LATERAL jsonb_array_elements(COALESCE(o.cart, '[]'::jsonb)) item
       WHERE (
