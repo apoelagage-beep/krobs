@@ -5,6 +5,12 @@ function supportsFrontBack(product) {
   return /t-?shirt|tee|hoodie|sweat/i.test(name);
 }
 
+function toList(value) {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') return Object.values(value);
+  return [];
+}
+
 async function getBlankBackView(product) {
   const variants = Array.isArray(product?.sync_variants) ? product.sync_variants : [];
   const catalogVariantId = variants.find((variant) => variant?.variant_id)?.variant_id;
@@ -15,10 +21,23 @@ async function getBlankBackView(product) {
       `/v2/catalog-variants/${encodeURIComponent(catalogVariantId)}/images?placement=back`
     );
 
-    for (const variantImages of response?.data || []) {
-      for (const image of variantImages?.images || []) {
-        if (String(image?.placement || '').toLowerCase() !== 'back') continue;
-        const url = image?.image_url || image?.background_image || '';
+    const variantGroups = toList(response?.data ?? response?.result);
+
+    for (const variantImages of variantGroups) {
+      const imageSource = variantImages?.images ?? variantImages?.image ?? variantImages;
+      const images = toList(imageSource);
+
+      for (const image of images) {
+        if (!image || typeof image !== 'object') continue;
+
+        const placement = String(image?.placement || variantImages?.placement || '').toLowerCase();
+        if (placement && placement !== 'back' && !placement.includes('back')) continue;
+
+        const url = image?.image_url
+          || image?.background_image
+          || image?.url
+          || image?.preview_url
+          || '';
         if (!url) continue;
 
         return {
