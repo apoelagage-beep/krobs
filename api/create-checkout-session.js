@@ -9,6 +9,8 @@ const DECK = {
   sizes: ['8.25']
 };
 
+const DECK_SHIPPING_CENTS = 990;
+
 function base(req) {
   return process.env.PUBLIC_BASE_URL?.replace(/\/$/, '')
     || `https://${req.headers['x-forwarded-host'] || req.headers.host}`;
@@ -21,6 +23,12 @@ function quantity(value) {
 function euroCents(value) {
   const number = Number(value);
   if (!Number.isFinite(number) || number <= 0) throw new Error('Prix textile invalide');
+  return Math.round(number * 100);
+}
+
+function shippingCents(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) throw new Error('Tarif de livraison invalide');
   return Math.round(number * 100);
 }
 
@@ -92,18 +100,69 @@ async function resolvePrintfulItem(item) {
   const currency = String(variant.currency || 'EUR').toUpperCase();
   if (currency !== 'EUR') throw new Error('Devise textile non prise en charge');
 
+  const catalogVariantId = String(variant.variant_id || variant?.product?.variant_id || '').trim();
+  if (!/^\d+$/.test(catalogVariantId)) {
+    throw new Error('Variante catalogue Printful invalide');
+  }
+
   const details = variantDetails(variant);
 
   return {
     type: 'printful',
     productId,
     syncVariantId,
+    catalogVariantId,
     name: variantBaseName(variant, item.name, details),
     size: details.size || String(item.size || ''),
     color: details.color || String(item.color || ''),
     qty: quantity(item.qty),
     price: euroCents(variant.retail_price)
   };
+}
+
+async function resolvePrintfulShipping(items) {
+  if (!items.length) return null;
+
+  const quantities = new Map();
+  for (const item of items) {
+    const key = String(item.catalogVariantId);
+    quantities.set(key, (quantities.get(key) || 0) + item.qty);
+  }
+
+  const data = await printfulRequest('/shipping/rates', {
+    method: 'POST',
+    body: {
+      recipient: { country_code: 'FR' },
+      items: [...quantities.entries()].map(([variantId, qty]) => ({
+        variant_id: Number(variantId),
+        quantity: qty
+      })),
+      currency: 'EUR',
+      locale: 'en_US'
+    }
+  });
+
+  const rates = (Array.isArray(data?.result) ? data.result : [])
+    .map((rate) => ({
+      id: String(rate?.id || '').trim(),
+      name: String(rate?.name || '').trim(),
+      currency: String(rate?.currency || 'EUR').toUpperCase(),
+      amount: shippingCents(rate?.rate)
+    }))
+    .filter((rate) => rate.id && rate.currency === 'EUR');
+
+  if (!rates.length) {
+    throw new Error('Aucun tarif de livraison Printful disponible pour la France');
+  }
+
+  return rates.find((rate) => rate.id.toUpperCase() === 'STANDARD')
+    || rates.sort((a, b) => a.amount - b.amount)[0];
+}
+
+function shippingLabel(hasDeck, printfulShipping) {
+  if (hasDeck && printfulShipping) return 'Livraison deck + textile — France';
+  if (printfulShipping) return 'Livraison textile — France';
+  return 'Livraison deck — France';
 }
 
 export default async function handler(req, res) {
@@ -120,12 +179,14 @@ export default async function handler(req, res) {
     let hasDeck = false;
     const metadataCart = [];
     const lines = [];
+    const printfulItems = [];
 
     for (const item of input) {
       const qty = quantity(item?.qty);
 
       if (item?.type === 'printful' || item?.syncVariantId) {
         const textile = await resolvePrintfulItem(item);
+        printfulItems.push(textile);
         metadataCart.push({
           t: 'p',
           v: textile.syncVariantId,
@@ -183,15 +244,12 @@ export default async function handler(req, res) {
       });
     }
 
-    if (hasDeck) {
-      lines.push({
-        quantity: 1,
-        price_data: {
-          currency: 'eur',
-          unit_amount: 990,
-          product_data: { name: 'Livraison deck — France' }
-        }
-      });
+    const printfulShipping = await resolvePrintfulShipping(printfulItems);
+    const shippingAmount = (hasDeck ? DECK_SHIPPING_CENTS : 0)
+      + (printfulShipping?.amount || 0);
+
+    if (shippingAmount <= 0) {
+      throw new Error('Tarif de livraison indisponible');
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -201,6 +259,16 @@ export default async function handler(req, res) {
       adaptive_pricing: { enabled: false },
       billing_address_collection: 'required',
       shipping_address_collection: { allowed_countries: ['FR'] },
+      shipping_options: [{
+        shipping_rate_data: {
+          type: 'fixed_amount',
+          display_name: shippingLabel(hasDeck, printfulShipping),
+          fixed_amount: {
+            amount: shippingAmount,
+            currency: 'eur'
+          }
+        }
+      }],
       phone_number_collection: { enabled: true },
       customer_creation: 'always',
       allow_promotion_codes: true,
@@ -209,8 +277,15 @@ export default async function handler(req, res) {
       metadata: {
         brand: 'KRØBS',
         drop: 'BLOCK 01',
-        fulfillment: metadataCart.some((item) => item.t === 'p') ? 'printful_draft' : 'deck',
-        shipping_rule: hasDeck ? 'deck_fr_990' : 'textile_price_only',
+        fulfillment: printfulItems.length ? 'printful_draft' : 'deck',
+        shipping_rule: printfulItems.length
+          ? (hasDeck ? 'deck_990_plus_printful_fr' : 'printful_rate_fr')
+          : 'deck_fr_990',
+        deck_shipping_cents: String(hasDeck ? DECK_SHIPPING_CENTS : 0),
+        ...(printfulShipping ? {
+          printful_shipping: printfulShipping.id,
+          printful_shipping_cents: String(printfulShipping.amount)
+        } : {}),
         cart: compactCart(metadataCart)
       }
     });
