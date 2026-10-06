@@ -42,7 +42,9 @@ jobs:
           raise SystemExit('No active EUR Printful variant found')
           PY
 
+          set -a
           source /tmp/test-data.env
+          set +a
           echo "PRODUCT_ID=$PRODUCT_ID"
           echo "VARIANT_ID=$VARIANT_ID"
           echo "REAL_PRICE=$REAL_PRICE"
