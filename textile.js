@@ -5,12 +5,70 @@ const KROBS_PRODUCT_GALLERIES = [
   {
     match: /classic\s*[øo]\s*hoodie\s*white/i,
     images: [
-      { url: '/assets/textile/classic-o-hoodie-white/front.svg', label: 'FACE', backgroundColor: '' },
-      { url: '/assets/textile/classic-o-hoodie-white/back.svg', label: 'DOS', backgroundColor: '' },
-      { url: '/assets/textile/classic-o-hoodie-white/left.svg', label: 'PROFIL G.', backgroundColor: '' },
-      { url: '/assets/textile/classic-o-hoodie-white/right.svg', label: 'PROFIL D.', backgroundColor: '' },
-      { url: '/assets/textile/classic-o-hoodie-white/detail-1.svg', label: 'DÉTAIL 1', backgroundColor: '' },
-      { url: '/assets/textile/classic-o-hoodie-white/detail-2.svg', label: 'DÉTAIL 2', backgroundColor: '' }
+      { url: '/assets/textile/classic-o-hoodie-white/front.webp', label: 'FACE', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-white/back.webp', label: 'DOS', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-white/left.webp', label: 'PROFIL G.', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-white/right.webp', label: 'PROFIL D.', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-white/detail-1.webp', label: 'DÉTAIL 1', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-white/detail-2.webp', label: 'DÉTAIL 2', backgroundColor: '' }
+    ]
+  },
+  {
+    match: /classic\s*[øo]\s*hoodie\s*black/i,
+    images: [
+      { url: '/assets/textile/classic-o-hoodie-black/front.webp', label: 'FACE', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-black/back.webp', label: 'DOS', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-black/left.webp', label: 'PROFIL G.', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-black/right.webp', label: 'PROFIL D.', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-black/detail-1.webp', label: 'DÉTAIL 1', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-hoodie-black/detail-2.webp', label: 'DÉTAIL 2', backgroundColor: '' }
+    ]
+  },
+  {
+    match: /classic\s*[øo]\s*(?:t[\s-]*shirt|tee)\s*white/i,
+    images: [
+      { url: '/assets/textile/classic-o-t-shirt-white/front.webp', label: 'FACE', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-white/back.webp', label: 'DOS', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-white/left.webp', label: 'PROFIL G.', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-white/folded.webp', label: 'PLIÉ', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-white/detail.webp', label: 'DÉTAIL', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-white/front-back.webp', label: 'FACE ET DOS', backgroundColor: '' }
+    ]
+  },
+  {
+    match: /classic\s*[øo]\s*(?:t[\s-]*shirt|tee)\s*black/i,
+    images: [
+      { url: '/assets/textile/classic-o-t-shirt-black/front.webp', label: 'FACE', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-black/back.webp', label: 'DOS', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-black/left.webp', label: 'PROFIL G.', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-black/right.webp', label: 'PROFIL D.', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-black/folded.webp', label: 'PLIÉ', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-black/detail.webp', label: 'DÉTAIL', backgroundColor: '' },
+      { url: '/assets/textile/classic-o-t-shirt-black/front-back.webp', label: 'FACE ET DOS', backgroundColor: '' }
+    ]
+  },
+  {
+    match: /^kr[øo]bs\s+t[\s-]*shirt\s+white\s*$/i,
+    images: [
+      { url: '/assets/textile/krobs-t-shirt-white/front.webp', label: 'FACE', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-white/back.webp', label: 'DOS', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-white/left.webp', label: 'PROFIL G.', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-white/right.webp', label: 'PROFIL D.', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-white/folded.webp', label: 'PLIÉ', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-white/detail.webp', label: 'DÉTAIL', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-white/front-back.webp', label: 'FACE ET DOS', backgroundColor: '' }
+    ]
+  },
+  {
+    match: /^kr[øo]bs\s+t[\s-]*shirt\s+black\s*$/i,
+    images: [
+      { url: '/assets/textile/krobs-t-shirt-black/front.webp', label: 'FACE', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-black/back.webp', label: 'DOS', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-black/left.webp', label: 'PROFIL G.', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-black/right.webp', label: 'PROFIL D.', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-black/folded.webp', label: 'PLIÉ', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-black/detail.webp', label: 'DÉTAIL', backgroundColor: '' },
+      { url: '/assets/textile/krobs-t-shirt-black/front-back.webp', label: 'FACE ET DOS', backgroundColor: '' }
     ]
   }
 ];
