@@ -3,6 +3,12 @@ nav a[aria-current="page"]{
   padding-bottom:4px;
 }
 
+.preorder-campaign{border:1px solid currentColor;padding:18px;margin:24px 0;}
+.preorder-campaign p{line-height:1.5;}
+#preorder-progress{width:100%;height:12px;accent-color:#080808;margin:8px 0;}
+.preorder-terms{font-size:13px;line-height:1.65;margin-top:16px;}
+.add-to-cart:disabled{opacity:.5;cursor:not-allowed;}
+
 .textile-page{
   background:#f4f1eb;
 }
@@ -368,3 +374,4 @@ nav a[aria-current="page"]{
     font-size:36px;
   }
 }
+

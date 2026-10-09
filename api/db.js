@@ -33,6 +33,14 @@ export async function ensure(sql) {
   await sql`ALTER TABLE krobs_orders ADD COLUMN IF NOT EXISTS printful_order_id TEXT`;
   await sql`ALTER TABLE krobs_orders ADD COLUMN IF NOT EXISTS printful_status TEXT`;
   await sql`ALTER TABLE krobs_orders ADD COLUMN IF NOT EXISTS printful_error TEXT`;
+  await sql`ALTER TABLE krobs_orders ADD COLUMN IF NOT EXISTS preorder_campaign TEXT`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS krobs_payment_refunds (
+      payment_intent TEXT PRIMARY KEY,
+      fully_refunded BOOLEAN NOT NULL DEFAULT FALSE,
+      amount_refunded INTEGER NOT NULL DEFAULT 0
+    )
+  `;
 
   await sql`
     CREATE TABLE IF NOT EXISTS krobs_inventory (
@@ -69,3 +77,4 @@ export async function ensure(sql) {
     `;
   }
 }
+

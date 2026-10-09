@@ -20,6 +20,7 @@ const cartTotal = document.querySelector('#cart-total');
 const stockStatus = document.querySelector('#stock-status');
 
 let stock = null;
+let preorderOpen = false;
 
 function escapeHtml(value = '') {
   return String(value)
@@ -33,7 +34,7 @@ function escapeHtml(value = '') {
 function normalizeCartItem(item) {
   if (!item || typeof item !== 'object') return null;
 
-  const qty = Math.max(1, Math.min(10, Number(item.qty) || 1));
+  const qty = Math.max(1, Math.min(10, Math.floor(Number(item.qty) || 1)));
 
   if (item.type === 'printful' || item.syncVariantId) {
     const productId = String(item.productId || '').trim();
@@ -134,7 +135,7 @@ function renderCart() {
   cartItems.innerHTML = cart.map((item) => {
     const details = item.type === 'printful'
       ? [item.size, item.color].filter(Boolean).join(' / ')
-      : `${item.size}\"`;
+      : `${item.size}\" / PRÉCOMMANDE`;
 
     return `
       <div class="cart-item">
@@ -171,8 +172,8 @@ function addItem(input) {
   const existing = cart.find((entry) => sameItem(entry, item));
   const currentQuantity = existing ? Number(existing.qty) : 0;
 
-  if (item.type === 'deck' && stock !== null && currentQuantity >= stock) {
-    alert('Stock maximum atteint.');
+  if (item.type === 'deck' && (!preorderOpen || stock === null || currentQuantity + item.qty > stock)) {
+    alert('Précommande indisponible ou quantité restante insuffisante.');
     return false;
   }
 
@@ -215,32 +216,44 @@ function removeItem(id, size, syncVariantId = '') {
 
 async function loadStock() {
   if (!stockStatus) return;
-
+  if (addButton) addButton.disabled = true;
   try {
-    const response = await fetch('/api/inventory', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Inventory unavailable');
-
+    const response = await fetch('/api/preorders', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Preorders unavailable');
     const data = await response.json();
-    const row = data.inventory?.find(
-      (item) => item.product_id === DECK_PRODUCT.id && item.size === DECK_PRODUCT.size
-    );
-
-    if (!row) throw new Error('Product unavailable');
-
-    stock = Number(row.stock);
-
-    if (stock <= 0) {
-      stockStatus.textContent = 'ÉPUISÉ';
-      if (addButton) {
-        addButton.disabled = true;
-        addButton.textContent = 'ÉPUISÉ';
-      }
-      return;
+    if (!Number.isInteger(data.paid) || data.paid < 0 || data.target !== 50 || typeof data.open !== 'boolean') {
+      throw new Error('Invalid campaign');
     }
-
-    stockStatus.textContent = stock <= 10 ? `PLUS QUE ${stock} EN STOCK` : 'EN STOCK';
+    stock = Math.max(0, data.target - data.paid);
+    preorderOpen = data.open;
+    const progress = document.querySelector('#preorder-progress');
+    if (progress) {
+      progress.max = data.target;
+      progress.value = Math.min(data.paid, data.target);
+      progress.hidden = false;
+    }
+    stockStatus.textContent = `${data.paid} / ${data.target} PLANCHES PRÉCOMMANDÉES ET PAYÉES`;
+    const deadline = document.querySelector('#preorder-deadline');
+    if (deadline) deadline.textContent = data.deadline
+      ? `Clôture le ${new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Paris' }).format(new Date(data.deadline))} (heure de Paris).`
+      : 'Date d’ouverture à venir.';
+    const state = document.querySelector('#preorder-state');
+    if (state) state.textContent = data.goalReached
+      ? 'Objectif atteint ! Les nouvelles précommandes sont fermées. Le lancement sera confirmé aux clients.'
+      : data.status === 'closed'
+        ? 'Campagne terminée : objectif non atteint. Les précommandes seront remboursées.'
+        : data.open ? 'Chaque planche payée nous rapproche du lancement de la production.' : 'Les précommandes ouvriront prochainement.';
+    if (addButton) {
+      addButton.disabled = !data.open;
+      addButton.textContent = data.open ? 'PRÉCOMMANDER — 74,90 €' : 'PRÉCOMMANDES FERMÉES';
+    }
   } catch {
-    stockStatus.textContent = 'STOCK DISPONIBLE';
+    preorderOpen = false;
+    stock = null;
+    stockStatus.textContent = 'SUIVI DES PRÉCOMMANDES TEMPORAIREMENT INDISPONIBLE';
+    const progress = document.querySelector('#preorder-progress');
+    if (progress) progress.hidden = true;
+    if (addButton) { addButton.disabled = true; addButton.textContent = 'RÉESSAYER PLUS TARD'; }
   }
 }
 
@@ -291,3 +304,4 @@ document.addEventListener('keydown', (event) => {
 
 renderCart();
 loadStock();
+if (stockStatus) window.setInterval(loadStock, 30000);

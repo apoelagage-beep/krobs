@@ -40,14 +40,21 @@
       <img src="/assets/detail-number.jpg" alt="Numérotation BLOCK 01">
     </div>
     <div class="product-info">
-      <p class="eyebrow">BLOCK 01 / LIMITED</p>
+      <p class="eyebrow">BLOCK 01 / PRÉCOMMANDE</p>
       <h2>BLOCK 01 DECK</h2>
-      <div class="price">74,90 €</div>
+      <div class="price">74,90 € TTC</div>
       <p>8.25” — érable canadien 7 plis — concave medium. Édition numérotée.</p>
       <div class="size"><span>SIZE</span><strong>8.25"</strong></div>
-      <p id="stock-status">Vérification du stock…</p>
-      <button class="add-to-cart" type="button" data-id="block-01-deck" data-size="8.25">AJOUTER AU PANIER</button>
+      <div class="preorder-campaign">
+        <p class="eyebrow">OBJECTIF : 50 PLANCHES PAYÉES</p>
+        <p id="stock-status" aria-live="polite">Chargement des précommandes…</p>
+        <progress id="preorder-progress" max="50" value="0" aria-label="Objectif de 50 planches précommandées" hidden></progress>
+        <p id="preorder-state" aria-live="polite"></p>
+        <p id="preorder-deadline"></p>
+      </div>
+      <button class="add-to-cart" type="button" data-id="block-01-deck" data-size="8.25" disabled>PRÉCOMMANDER — 74,90 €</button>
       <p class="shipping">LIVRAISON FRANCE — 9,90 €</p>
+      <p class="preorder-terms">Paiement intégral à la précommande : 84,80 € TTC pour une planche livrée en France. Fabrication lancée à partir de 50 planches payées, après confirmation à l’atelier. Délai estimé : 4 à 5 semaines après lancement, puis transport. Si l’objectif n’est pas atteint à la clôture, la précommande sera intégralement remboursée. Les frais de livraison deck sont facturés une seule fois par commande.</p>
     </div>
   </section>
   <section class="lifestyle">
@@ -63,7 +70,8 @@
   <h2>PANIER</h2>
   <div id="cart-items"></div>
   <div class="cart-footer">
-    <div><span>TOTAL</span><strong id="cart-total">0,00 €</strong></div>
+    <div><span>SOUS-TOTAL ARTICLES</span><strong id="cart-total">0,00 €</strong></div>
+    <p class="preorder-terms">Deck en précommande : livraison France 9,90 € par commande. Les frais textile éventuels sont calculés au paiement. Une planche seule livrée : 84,80 € TTC.</p>
     <button id="checkout" type="button">COMMANDER</button>
   </div>
 </aside>

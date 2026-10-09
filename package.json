@@ -2,7 +2,7 @@
   "name": "krobs",
   "private": true,
   "dependencies": {
-    "stripe": "^18.5.0",
+    "stripe": "22.6.0",
     "@neondatabase/serverless": "^1.0.1"
   }
 }
