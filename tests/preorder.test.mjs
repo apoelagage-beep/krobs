@@ -64,7 +64,7 @@ async function getModule(id) {
 }
 const campaign = await getModule(path.join(root, 'lib/preorder.js'));
 await campaign.evaluate();
-const { campaignState, CAMPAIGN } = campaign.namespace;
+const { campaignState, CAMPAIGN, DEFAULT_DEADLINE } = campaign.namespace;
 const handlers = {};
 for (const name of ['create-checkout-session', 'webhook', 'preorders']) {
   const module = await getModule(path.join(root, `api/${name}.js`));
@@ -110,7 +110,10 @@ assert.equal((await call('create-checkout-session', { cart: [] })).code, 400);
 assert.equal((await call('create-checkout-session', cart(1), 'GET')).code, 405);
 const originalDeadline = env.KROBS_PREORDER_DEADLINE;
 delete env.KROBS_PREORDER_DEADLINE;
-assert.equal((await call('create-checkout-session', cart(1))).code, 400);
+assert.equal((await call('preorders')).data.deadline, '2027-10-10T21:59:00.000Z');
+assert.equal(campaignState(49, DEFAULT_DEADLINE, Date.parse('2027-10-10T21:58:59Z')).open, true);
+assert.equal(campaignState(49, DEFAULT_DEADLINE, Date.parse('2027-10-10T21:59:00Z')).open, false);
+assert.equal(new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }).format(new Date(DEFAULT_DEADLINE)), '23:59');
 env.KROBS_PREORDER_DEADLINE = '2020-01-01T00:00:00Z';
 assert.equal((await call('create-checkout-session', cart(1))).code, 400);
 env.KROBS_PREORDER_DEADLINE = originalDeadline;
