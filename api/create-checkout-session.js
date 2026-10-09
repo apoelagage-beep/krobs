@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { db, ensure } from './db.js';
 import { printfulRequest } from './printful.js';
+import { CAMPAIGN, preorderState } from '../lib/preorder.js';
 
 const DECK = {
   id: 'block-01-deck',
@@ -17,7 +18,9 @@ function base(req) {
 }
 
 function quantity(value) {
-  return Math.max(1, Math.min(10, Number(value) || 1));
+  const qty = Number(value ?? 1);
+  if (!Number.isInteger(qty) || qty < 1 || qty > 10) throw new Error('Quantité invalide (1 à 10).');
+  return qty;
 }
 
 function euroCents(value) {
@@ -169,7 +172,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   try {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-08-26.dahlia' });
     const sql = db();
     await ensure(sql);
 
@@ -216,14 +219,10 @@ export default async function handler(req, res) {
         throw new Error('Produit invalide');
       }
 
-      const row = await sql`
-        SELECT stock FROM krobs_inventory
-        WHERE product_id=${DECK.id} AND size=${String(item.size)}
-      `;
-
-      if (!row.length || qty > Number(row[0].stock)) {
-        throw new Error('Stock insuffisant');
-      }
+      const campaign = await preorderState(sql);
+      if (!campaign.open) throw new Error('Les précommandes sont actuellement fermées.');
+      if (input.filter((entry) => entry?.id === DECK.id).length > 1) throw new Error('Planche en double dans le panier.');
+      if (qty > campaign.target - campaign.paid) throw new Error('Cette quantité dépasse le nombre de précommandes restantes.');
 
       hasDeck = true;
       metadataCart.push({ t: 'd', q: qty });
@@ -233,7 +232,8 @@ export default async function handler(req, res) {
           currency: 'eur',
           unit_amount: DECK.price,
           product_data: {
-            name: `${DECK.name} — ${item.size}`,
+            name: `${DECK.name} — ${item.size} — PRÉCOMMANDE`,
+            description: 'Production à partir de 50 planches payées. Fabrication estimée à 4–5 semaines après lancement, puis livraison. Paiement immédiat.',
             metadata: {
               krobs_type: 'deck',
               krobs_product_id: DECK.id,
@@ -254,8 +254,8 @@ export default async function handler(req, res) {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
+      integration_identifier: 'krobs_preorder_qmzntvka',
       line_items: lines,
-      payment_method_types: ['card'],
       adaptive_pricing: { enabled: false },
       billing_address_collection: 'required',
       shipping_address_collection: { allowed_countries: ['FR'] },
@@ -275,6 +275,7 @@ export default async function handler(req, res) {
       success_url: `${base(req)}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${base(req)}/cancel`,
       metadata: {
+        ...(hasDeck ? { preorder_campaign: CAMPAIGN } : {}),
         brand: 'KRØBS',
         drop: 'BLOCK 01',
         fulfillment: printfulItems.length ? 'printful_draft' : 'deck',
@@ -296,3 +297,4 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: error.message });
   }
 }
+

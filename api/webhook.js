@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { db, ensure } from './db.js';
 import { createPrintfulDraftOrder, printfulRequest } from './printful.js';
+import { CAMPAIGN } from '../lib/preorder.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -111,14 +112,32 @@ export default async function handler(req, res) {
   let session;
 
   try {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-08-26.dahlia' });
     const event = stripe.webhooks.constructEvent(
       await raw(req),
       req.headers['stripe-signature'],
       process.env.STRIPE_WEBHOOK_SECRET
     );
 
-    if (event.type !== 'checkout.session.completed') {
+    if (event.type === 'charge.refunded') {
+      const charge = event.data.object;
+      const paymentIntent = typeof charge.payment_intent === 'string'
+        ? charge.payment_intent : charge.payment_intent?.id;
+      if (paymentIntent) {
+        sql = db();
+        await ensure(sql);
+        await sql`
+          INSERT INTO krobs_payment_refunds(payment_intent, fully_refunded, amount_refunded)
+          VALUES(${paymentIntent}, ${Boolean(charge.refunded)}, ${charge.amount_refunded || 0})
+          ON CONFLICT(payment_intent) DO UPDATE SET
+            fully_refunded=krobs_payment_refunds.fully_refunded OR EXCLUDED.fully_refunded,
+            amount_refunded=GREATEST(krobs_payment_refunds.amount_refunded, EXCLUDED.amount_refunded)
+        `;
+      }
+      return res.status(200).json({ received: true });
+    }
+
+    if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
       return res.status(200).json({ received: true });
     }
 
@@ -147,6 +166,7 @@ export default async function handler(req, res) {
         shipping_name,
         shipping_address,
         cart,
+        preorder_campaign,
         stripe_created_at
       ) VALUES (
         ${session.id},
@@ -160,13 +180,14 @@ export default async function handler(req, res) {
         ${shipping?.name || session.customer_details?.name || null},
         ${JSON.stringify(address)},
         ${JSON.stringify(cart)},
+        ${session.metadata?.preorder_campaign || null},
         ${new Date((session.created || Math.floor(Date.now() / 1000)) * 1000).toISOString()}
       )
       ON CONFLICT(stripe_session_id) DO NOTHING
       RETURNING id
     `;
 
-    if (inserted.length) {
+    if (inserted.length && session.metadata?.preorder_campaign !== CAMPAIGN) {
       for (const item of cart.filter(isDeck)) {
         const qty = itemQty(item);
         const updated = await sql`
@@ -242,3 +263,4 @@ export default async function handler(req, res) {
     return res.status(400).send('Webhook Error');
   }
 }
+
