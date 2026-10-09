@@ -10,7 +10,8 @@ Storefront BLOCK 01 et textile Printful.
 - Le paiement est encaissé immédiatement. Aucun acompte client ou débit différé.
 - À partir de 50 planches payées, les nouvelles sessions deck sont fermées. Des sessions déjà ouvertes ou des paiements différés peuvent faire dépasser 50 : il s'agit d'un objectif minimum, pas d'une limite garantie. Vérifier le nombre exact avec l'atelier avant production.
 - Le site affiche l'objectif atteint ; il ne commande pas au fabricant et n'envoie pas de messages aux clients. Le lancement et son annonce restent manuels. Délai estimé : 4 à 5 semaines après lancement, puis transport.
-- Sans date de clôture configurée, les précommandes deck sont fermées. Le textile continue de fonctionner.
+- Clôture validée : 10 octobre 2027 à 23 h 59, heure de Paris (`2027-10-10T23:59:00+02:00`), ou fermeture anticipée des nouvelles sessions à partir de 50 planches payées.
+- Le vendeur a confirmé le remboursement intégral si l'objectif n'est pas atteint à la clôture.
 - Si l'objectif n'est pas atteint à la clôture, effectuer les remboursements complets depuis Stripe et informer les clients. Aucun remboursement automatique n'est déclenché par le site.
 - Les remboursements complets sont exclus du compteur, même si l'événement de remboursement arrive avant celui du paiement. Les remboursements partiels ne modifient pas le nombre de planches : rapprocher manuellement toute annulation partielle avant de lancer la fabrication.
 
@@ -18,7 +19,7 @@ Storefront BLOCK 01 et textile Printful.
 
 Variables serveur existantes : `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `KROBS_DB_POSTGRES_URL`, `PRINTFUL_TOKEN`, éventuellement `PRINTFUL_STORE_ID` et `PUBLIC_BASE_URL`.
 
-Ajouter `KROBS_PREORDER_DEADLINE` : date de clôture ISO 8601 avec fuseau explicite (exemple de format uniquement : `YYYY-MM-DDTHH:mm:ss+01:00`). Choisir la vraie date avec le vendeur avant activation. Les dates sont affichées en heure de Paris.
+La date approuvée est définie dans `lib/preorder.js`. `KROBS_PREORDER_DEADLINE` permet éventuellement de la remplacer par une date ISO 8601 avec fuseau explicite. Une valeur invalide ferme les précommandes. Les dates sont affichées en heure de Paris.
 
 Utiliser une base et des clés Stripe de test séparées pour Preview/Development. Ne pas relier une preview à la base de production ou à Stripe live. Ne jamais committer de clés.
 
@@ -36,4 +37,4 @@ Exécuter `node --experimental-vm-modules tests/preorder.test.mjs`. Ces tests ut
 
 En preview isolée, tester : une planche à 84,80 €, les quantités multiples, un panier textile et un panier mixte ; paiement réussi/échoué/différé ; webhook livré deux fois ; remboursement complet ; compteur à 49 puis 50 ; clôture et indisponibilité de la base. Vérifier que les coordonnées de livraison sont enregistrées.
 
-Avant publication : choisir la date de clôture, confirmer les modalités de remboursement et les caractéristiques avec le vendeur, configurer les événements du webhook, et effectuer un vrai parcours de test Stripe.
+Avant publication : confirmer les caractéristiques avec le vendeur, configurer les événements du webhook, et effectuer un vrai parcours de test Stripe. La date de clôture et le remboursement intégral ont été validés.
